@@ -69,8 +69,12 @@ class EMongoDocumentDataProvider extends CDataProvider
 			$this->modelClass = get_class($modelClass);
 			$this->model = $modelClass;
 		}
-
+		if($this->model==null){
+			Yii::log(print_r($modelClass,true),'error');
+			Yii::app()->end();
+		}
 		$this->_criteria = $this->model->getDbCriteria();
+		
 		if(isset($config['criteria']))
 		{
 			$this->_criteria->mergeWith($config['criteria']);

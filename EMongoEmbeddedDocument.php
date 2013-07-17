@@ -78,8 +78,11 @@ abstract class EMongoEmbeddedDocument extends CModel
 			return false;
 
 		$this->_embedded = new CMap;
-		if(!isset(self::$_embeddedConfig[get_class($this)]))
+		
+		if(!isset(self::$_embeddedConfig[get_class($this)])){
+			
 			self::$_embeddedConfig[get_class($this)] = $this->embeddedDocuments();
+		}
 		$this->afterEmbeddedDocsInit();
 	}
 
@@ -164,6 +167,7 @@ abstract class EMongoEmbeddedDocument extends CModel
 				$doc->setOwner($this);
 				$this->_embedded->add($name, $doc);
 			}
+			
 			return $this->_embedded->itemAt($name);
 		}
 		else
@@ -186,9 +190,18 @@ abstract class EMongoEmbeddedDocument extends CModel
 					$this->_embedded->add($name, $doc);
 				}
 				return $this->_embedded->itemAt($name)->attributes=$value;
+			}else if($value===null){
+				if ($this->_embedded->contains($name)) {
+					$this->_embedded->remove($name);
+					$docClassName = self::$_embeddedConfig[get_class($this)][$name];
+					$doc = new $docClassName($this->getScenario());
+					$doc->setOwner($this);
+					$this->_embedded->add($name, $doc);
+				}
+			}else if($value instanceof EMongoEmbeddedDocument){
+				$this->_embedded->add($name, $value);
 			}
-			else if($value instanceof EMongoEmbeddedDocument)
-				return $this->_embedded->add($name, $value);
+			
 		}
 		else
 			parent::__set($name, $value);
@@ -262,6 +275,9 @@ abstract class EMongoEmbeddedDocument extends CModel
 			}
 			if($this->hasEmbeddedDocuments())
 			{
+				if(!isset(self::$_embeddedConfig[$className])){
+					$this->initEmbeddedDocuments();
+				}
 				$names = array_merge($names, array_keys(self::$_embeddedConfig[get_class($this)]));
 			}
 			return self::$_attributes[$className]=$names;

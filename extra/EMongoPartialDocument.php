@@ -23,6 +23,7 @@
  */
 abstract class EMongoPartialDocument extends EMongoDocument
 {
+	
 	protected $_loadedFields	= array();	// Fields that have not been loaded from DB
 	protected $_partial			= false;	// Whatever the document has been partially loaded
 
@@ -34,6 +35,8 @@ abstract class EMongoPartialDocument extends EMongoDocument
 	{
 		return $this->_partial;
 	}
+	
+	
 
 	/**
 	 * Returns list of fields that have been loaded from DB by
@@ -53,8 +56,9 @@ abstract class EMongoPartialDocument extends EMongoDocument
 	public function getUnloadedFields()
 	{
 		return $this->_partial ? array_diff(
-			$this->_loadedFields,
-			$this->attributeNames()
+			$this->attributeNames(),
+			$this->_loadedFields
+			
 		) : array();
 	}
 
@@ -76,28 +80,6 @@ abstract class EMongoPartialDocument extends EMongoDocument
 	}
 
 	/**
-	 * If user explicitly sets the unloaded embedded field, consider it as an loaded one, if model is partially loaded
-	 * @see EMongoEmbeddedDocument::__set()
-	 */
-	public function __set($name, $value)
-	{
-		$return = parent::__set($name, $value);
-
-		if($this->_partial && !in_array($name, $this->_loadedFields))
-		{
-			$this->_loadedFields[] = $name;
-
-			if(count($this->_loadedFields) === count($this->attributeNames()))
-			{
-				$this->_partial		= false;
-				$this->loadedFields	= null;
-			}
-		}
-
-		return $return;
-	}
-
-	/**
 	 * Loads additional, previously unloaded attributes
 	 * to this document.
 	 * @param array $attributes attributes to be loaded
@@ -105,10 +87,12 @@ abstract class EMongoPartialDocument extends EMongoDocument
 	 */
 	public function loadAttributes($attributes = array())
 	{
+		Yii::log(get_class($this).'.loadAttributes() '.var_export($attributes,true),'debug');
 		$document = $this->getCollection()->findOne(
 			array('_id' => $this->_id),
 			$attributes
 		);
+		Yii::log(get_class($this).'.loadAttributes() the doucment:'.var_export($document,true),'debug');
 
 		unset($document['_id']);
 
@@ -128,6 +112,20 @@ abstract class EMongoPartialDocument extends EMongoDocument
 
 		return true;
 	}
+	
+	protected function makeFieldLoaded($name){
+		if($this->_partial && !in_array($name, $this->_loadedFields))
+		{
+			Yii::log("make field $name as loaded field.",'debug');
+			$this->_loadedFields[] = $name;
+		
+			if(count($this->_loadedFields) === count($this->attributeNames()))
+			{
+				$this->_partial		= false;
+				$this->_loadedFields	= null;
+			}
+		}
+	}
 
 	/**
 	 * Updates the row represented by this active record.
@@ -146,9 +144,19 @@ abstract class EMongoPartialDocument extends EMongoDocument
 	 */
 	public function update(array $attributes=null, $modify = false)
 	{
+		Yii::log(get_class($this).'.update() '.var_export($attributes,true),'debug');
+		/*$unloaded = $this->getUnloadedFields();
+		
+		foreach($unloaded as $unfield){
+			if($this->{$unfield} !== null)
+				$this->makeFieldLoaded($unfield);
+		}*/
 		if($this->_partial)
 		{
-			$attributes = count($attributes) > 0 ? array_intersect($attributes, $this->_loadedFields) : array_diff($this->_loadedFields, array('_id'));
+			$attributes = count($attributes) > 0 ? 
+				array_intersect($attributes, $this->_loadedFields) :
+				array_diff($this->_loadedFields, array('_id'));
+			
 			return parent::update($attributes, true);
 		}
 
@@ -169,4 +177,14 @@ abstract class EMongoPartialDocument extends EMongoDocument
 
 		return $model;
 	}
+	
+	/**
+	 * @see EMongoDocument::findByPk()
+	 * @return EMongoPartialDocument
+	 */
+	public function findByPk($pk, $criteria = null) {
+		return parent::findByPk($pk,$criteria);
+	}
+
+
 }

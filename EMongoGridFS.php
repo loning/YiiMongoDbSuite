@@ -45,7 +45,27 @@ abstract class EMongoGridFS extends EMongoDocument
 	 * @since v1.3
 	 */
 	public $filename = null; // mandatory
+	
+	public $uploadDate = null;
+	
+	public $length;
+	
+	public $chunkSize;
+	
+	public $md5;
+	
+	public $contentType = null;
+	
+	
+	protected $originalFile = null;
 
+	/**
+	 * for load inseting file
+	 * @param string $filename
+	 */
+	public function setOriginalFile($file){
+		$this->originalFile=$file;
+	}
 	/**
 	 * Returns current MongoGridFS object
 	 * By default this method use {@see getCollectionName()}
@@ -75,49 +95,9 @@ abstract class EMongoGridFS extends EMongoDocument
 	 */
 	public function insert(array $attributes=null)
 	{
-		if(!$this->getIsNewRecord())
-			throw new CDbException(Yii::t('yii','The EMongoDocument cannot be inserted to database because it is not new.'));
-		if($this->beforeSave())
-		{
-			Yii::trace('Trace: '.__CLASS__.'::'.__FUNCTION__.'()', 'ext.MongoDb.EMongoGridFS');
-			$rawData = $this->toArray();
-			// free the '_id' container if empty, mongo will not populate it if exists
-			if(empty($rawData['_id']))
-				unset($rawData['_id']);
-			// filter attributes if set in param
-			if($attributes!==null)
-			{
-				foreach($rawData as $key=>$value)
-				{
-					if(!in_array($key, $attributes))
-						unset($rawData[$key]);
-				}
-			}
-			// check file
-			$filename = "";
-			if(!array_key_exists('filename', $rawData))
-				throw new CException(Yii::t('yii', 'We need a filename'));
-			else
-			{
-				$filename = $rawData['filename'];
-				unset($rawData['filename']);
-			}
-
-			$result = $this->getCollection()->put($filename, $rawData);
-			if($result !== false) // strict comparsion driver may return empty array
-			{
-				$this->_id = $result;
-				//TODO: should be set in parent class
-				$this->_gridFSFile = $this->getCollection()->findOne(array('_id'=>$this->_id));
-				$this->setIsNewRecord(false);
-				$this->setScenario('update');
-				$this->afterSave();
-				return true;
-			}
-
-			throw new CException(Yii::t('yii', 'Can\t save document to disk, or try to save empty document!'));
-		}
-		return false;
+		if($this->_id == null)
+			$this->_id=new MongoId();
+		return $this->insertWithPk($this->_id,$attributes);
 	}
 
 	/**
@@ -147,18 +127,31 @@ abstract class EMongoGridFS extends EMongoDocument
 						unset($rawData[$key]);
 				}
 			}
-
-			// check file
-			$filename = "";
-			if(!array_key_exists('filename', $rawData))
+			unset($rawData['md5']);
+			unset($rawData['uploadDate']);
+			unset($rawData['length']);
+			unset($rawData['chunkSize']);
+			if($rawData['contentType'] == null)
+				unset($rawData['contentType']);
+			
+			if($this->originalFile === null)
 				throw new CException(Yii::t('yii', 'We need a filename'));
-			else
-			{
-				$filename = $rawData['filename'];
-				unset($rawData['filename']);
+			
+			if(is_string($this->originalFile)){
+				if($this->contentType == null)
+					$this->contentType = $rawData['contentType'] = mime_content_type($this->originalFile);
+				$result = $this->getCollection()->put($this->originalFile, $rawData);
+				
+			}else if(is_array($this->originalFile)){
+			
+				if(isset($this->originalFile['upload'])){
+					if($this->contentType == null)
+						$this->contentType = $rawData['contentType'] = mime_content_type($_FILES[$this->originalFile['upload']]['type']);
+					$result = $this->getCollection()->storeUpload($this->originalFile['upload'], $rawData);
+				}else if(isset($this->originalFile['bytes']))
+					$result = $this->getCollection()->storeBytes($this->originalFile['bytes'], $rawData, array('safe'=>true));
 			}
-
-			$result = $this->getCollection()->put($filename, $rawData);
+				
 
 			if($result !== false) // strict comparsion driver may return empty array
 			{
@@ -193,7 +186,7 @@ abstract class EMongoGridFS extends EMongoDocument
 		if($this->getIsNewRecord())
 			throw new CDbException(Yii::t('yii','The EMongoDocument cannot be updated because it is new.'));
 
-		if(is_file($this->filename) === true) {
+		if(is_file($this->originalFile) === true) {
 			if($this->deleteByPk($this->_id) !== false)
 			{
 				$result =  $this->insertWithPk($this->_id, $attributes);
@@ -273,10 +266,11 @@ abstract class EMongoGridFS extends EMongoDocument
 	public function getBytes()
 	{
 		Yii::trace('Trace: '.__CLASS__.'::'.__FUNCTION__.'()', 'ext.MongoDb.EMongoGridFS');
-		if (method_exists($this->_gridFSFile, 'getBytes') === true)
-			return $this->_gridFSFile->getBytes();
-		else
-			return false;
+		return $this->_gridFSFile->getBytes();
+	}
+	
+	public function getUploadDate(){
+		
 	}
 
 	/**

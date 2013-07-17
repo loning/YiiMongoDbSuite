@@ -74,6 +74,7 @@ class MongoCRUDCode extends CCodeModel
 		else
 		{
 			$this->_modelClass = $class;
+			
 			$this->_modelObject = call_user_func($class.'::model');
 		}
 	}

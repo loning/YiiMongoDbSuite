@@ -91,14 +91,24 @@ class EEmbeddedArraysBehavior extends EMongoDocumentBehavior
 	/**
 	 * @since v1.0
 	 */
-	private function parseExistingArray()
+	public function parseExistingArray()
 	{
 		if(is_array($this->getOwner()->{$this->arrayPropertyName}))
 		{
 			$arrayOfDocs = array();
 			foreach($this->getOwner()->{$this->arrayPropertyName} as $doc)
 			{
-				$obj = new $this->arrayDocClassName;
+				if(isset($doc['_type'])){
+					try{
+						$obj = new $doc['_type'];
+					}catch(Exception $ex){
+						continue;
+					}
+					
+				}else{
+					$obj = new $this->arrayDocClassName;
+				}
+				
 				$obj->setAttributes($doc, false);
 				
 				// If any EEmbeddedArraysBehavior is attached,
@@ -113,6 +123,8 @@ class EEmbeddedArraysBehavior extends EMongoDocumentBehavior
 				$arrayOfDocs[] = $obj;
 			}
 			$this->getOwner()->{$this->arrayPropertyName} = $arrayOfDocs;
+		}else{
+			$this->getOwner()->{$this->arrayPropertyName} = array();
 		}
 	}
 
@@ -156,4 +168,6 @@ class EEmbeddedArraysBehavior extends EMongoDocumentBehavior
 		$this->getOwner()->{$this->arrayPropertyName} = $this->_cache;
 		$this->_cache = null;
 	}
+	
+	
 }

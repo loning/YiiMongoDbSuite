@@ -63,11 +63,16 @@ class EMongoCriteria extends CComponent
 		'eq'			=> '$$eq',
 		'=='			=> '$$eq',
 		'where'			=> '$where',
-		'or'			=> '$or'
+		'or'			=> '$or',
+		'slice'			=> '$slice',
+		'near'			=> '$near',
+		'maxDistance'	=> '$maxDistance',
+		'within'		=> '$within',
 	);
 
 	const SORT_ASC		= 1;
 	const SORT_DESC		= -1;
+	const INDEX_2D		= '2d';
 
 	private $_select		= array();
 	private $_limit			= null;
@@ -341,17 +346,35 @@ class EMongoCriteria extends CComponent
 
 	/**
 	 * Return selected fields
+	 * 
+	 * As now for MongoCursor, the select methods need array like
+	 * <pre>
+	 * 	$cursor->fields(array("summary" => true));
+	 * </pre>
 	 *
 	 * @param boolean $forCursor MongoCursor::fields() method requires
 	 *                the fields to be specified as a hashmap. When this
 	 *                parameter is set to true, then we'll return
 	 *                the fields in this format
 	 * @since v1.3.1
+	 * 
+	 * 
 	 */
-	public function getSelect($forCursor = false)
+	public function getSelect()
 	{
-		if (!$forCursor) return $this->_select;
-		return array_fill_keys($this->_select, true); // PHP 5.2.0+ required!
+		/**
+		 * <pre>
+		 * You have to cast array('game_plays' => array('$slice' => 2)) to an object:
+		 *
+		 * $this->_db->selectCollection($collection)->find(array(),(object)array('game_plays'
+		 * => array('$slice' => 2)));
+		 * ...for dumb reasons that will change in the next version. 
+		 * </pre>
+		 */
+		return $this->_select;
+		//return (object)$this->_select;
+		//if (!$forCursor) return $this->_select;
+		//return array_fill_keys($this->_select, true); // PHP 5.2.0+ required!
 	}
 
 	/**
@@ -471,5 +494,42 @@ class EMongoCriteria extends CComponent
 				$this->_conditions[$fieldName] = $value;
 		}
 		return $this;
+	}
+	
+	/**
+	 * 
+	 * @param string $field
+	 * @param string $shap '$box'|'$center'|'$polygon'
+	 * @param mixed $params
+	 */
+	public function within($field,$shap,$params){
+		$this->addCond($field, 'within', array($shap=>$params));
+		return $this;
+	}
+	
+	/**
+	 * 
+	 * @param string $field
+	 * @param array $box array(p,p)
+	 */
+	public function withinBox($field,$box){
+		return $this->within($field, '$box', $box);
+	}
+	/**
+	 * 
+	 * @param string $field
+	 * @param Point $center
+	 * @param float $radius
+	 */
+	public function withinCenter($field,$center,$radius){
+		return $this->within($field, '$center', array($center,$radius));
+	}
+	/**
+	 * 
+	 * @param string $field
+	 * @param array $polygon
+	 */
+	public function withinPolygon($field,$polygon){
+		return $this->within($field, '$polygon', $polygon);
 	}
 }
