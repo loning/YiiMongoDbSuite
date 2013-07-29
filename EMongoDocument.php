@@ -753,15 +753,12 @@ abstract class EMongoDocument extends EMongoEmbeddedDocument {
 		}
 	}
 	
-	
-	public function upsert($modifier=null){
-		return $this->updateAll($modifier,array('upsert'=>true,'multiple'=>false));
-	}
-	
 	public function upsertAll($modifier,$criteria=null){
 		return $this->updateAll($modifier,$criteria,array('upsert'=>true,'multiple'=>true));
 	}
-	
+	public function upsertSingle($modifier,$criteria=null){
+		return $this->updateAll($modifier,$criteria,array('upsert'=>true,'multiple'=>false));
+	}
 	
 	
 	/**
@@ -787,7 +784,7 @@ abstract class EMongoDocument extends EMongoEmbeddedDocument {
 				$this->_modifier = null;
 			}
 		}
-		Yii::trace ( get_class ( $this ) . '.updateOne()', 'ext.MongoDb.EMongoDocument' );
+		Yii::trace ( get_class ( $this ) . '.updateSelf()', 'ext.MongoDb.EMongoDocument' );
 		return $this->updateAll ( $modifier, $this->createPkCriteria ( $this->_id ), $options );
 	}
 	
