@@ -43,6 +43,7 @@ class EMongoModifier extends CComponent
 		'pull'		=> '$pull',
 		'pullAll'	=> '$pullAll',
 		'rename'	=> '$rename',
+		'setOnInsert'=>'$setOnInsert',
 	);
 
 	private $_fields = array();

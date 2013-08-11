@@ -498,6 +498,14 @@ class EMongoCriteria extends CComponent
 	
 	/**
 	 * 
+	 * @param array $arr
+	 */
+	public function addNativeCond($arr){
+		$this->_conditions['$and'][]=$arr;
+	}
+	
+	/**
+	 * 
 	 * @param string $field
 	 * @param string $shap '$box'|'$center'|'$polygon'
 	 * @param mixed $params

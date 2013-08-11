@@ -687,13 +687,10 @@ abstract class EMongoDocument extends EMongoEmbeddedDocument {
 						'multiple' => false 
 				) );
 			} else {
-				if (version_compare ( Mongo::VERSION, '1.0.5', '>=' ) === true)
 					$result = $this->getCollection ()->save ( $rawData, array (
 							'fsync' => $this->getFsyncFlag (),
 							'safe' => $this->getSafeFlag () 
 					) );
-				else
-					$result = $this->getCollection ()->save ( $rawData );
 			}
 			
 			if ($result !== false) 			// strict comparison needed
@@ -1496,6 +1493,16 @@ abstract class EMongoDocument extends EMongoEmbeddedDocument {
 		return $this->_modifier;
 	}
 	
+	
+	public function byNativeCondition($arr)
+	{
+		if($arr==null)
+			return $this;
+		$criteria = $this->getDbCriteria();
+		$criteria->addNativeCond($arr);
+		
+		return $this;
+	}
 	/**
 	 * (non-PHPdoc)
 	 * @see EMongoEmbeddedDocument::__set()
