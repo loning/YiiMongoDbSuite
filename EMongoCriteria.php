@@ -504,6 +504,10 @@ class EMongoCriteria extends CComponent
 		$this->_conditions['$and'][]=$arr;
 	}
 	
+	public function RemoveCond($fieldName){
+		unset($this->_conditions[$fieldName]);
+	}
+	
 	/**
 	 * 
 	 * @param string $field
