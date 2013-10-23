@@ -929,7 +929,7 @@ abstract class EMongoDocument extends EMongoEmbeddedDocument {
 	 * @param EMongoModifier $modifier
 	 * @param bool $remove
 	 * @param bool $update
-	 * @param bool $new
+	 * @param bool $new return the modified document
 	 * @param bool $upsert
 	 * @return EMongoDocument
 	 */
